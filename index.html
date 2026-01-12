@@ -1,0 +1,766 @@
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Magnet, Zap, Activity, ClipboardList, CheckCircle, HelpCircle, Save, RefreshCw, Smile, Lightbulb, Play, Printer, FileText } from 'lucide-react';
+
+const App = () => {
+  const [activeTab, setActiveTab] = useState('home');
+  const [studentName, setStudentName] = useState('');
+  const [isStarted, setIsStarted] = useState(false);
+
+  // --- STATE UNTUK ASESMEN DIAGNOSTIK ---
+  const [diagnosticAnswers, setDiagnosticAnswers] = useState({});
+  const [diagnosticResult, setDiagnosticResult] = useState(null);
+
+  // --- STATE UNTUK KEMAGNETAN ---
+  const [magnetLabItems, setMagnetLabItems] = useState([
+    { id: 1, name: 'Paku Besi', type: 'feromagnetik', tested: false, result: '' },
+    { id: 2, name: 'Penghapus Karet', type: 'diamagnetik', tested: false, result: '' },
+    { id: 3, name: 'Jarum Baja', type: 'feromagnetik', tested: false, result: '' },
+    { id: 4, name: 'Cincin Emas', type: 'diamagnetik', tested: false, result: '' },
+    { id: 5, name: 'Kawat Tembaga', type: 'diamagnetik', tested: false, result: '' },
+    { id: 6, name: 'Aluminium Foil', type: 'paramagnetik', tested: false, result: '' },
+  ]);
+  const [magnetReport, setMagnetReport] = useState({ observation: '', analysis: '', conclusion: '' });
+
+  // --- STATE UNTUK KELISTRIKAN ---
+  const [elecQuizScore, setElecQuizScore] = useState(null);
+  const [elecSolution, setElecSolution] = useState('');
+  
+  // --- STATE UNTUK REFLEKSI ---
+  const [reflectionData, setReflectionData] = useState({
+    understood: '',
+    confused: '',
+    feeling: ''
+  });
+
+  // --- STATE UNTUK ICE BREAKING ---
+  const [cards, setCards] = useState([]);
+  const [flipped, setFlipped] = useState([]);
+  const [solved, setSolved] = useState([]);
+  const [disabled, setDisabled] = useState(false);
+
+  // --- FUNGSI ASESMEN DIAGNOSTIK ---
+  const handleDiagnosticSubmit = (e) => {
+    e.preventDefault();
+    const answers = Object.values(diagnosticAnswers);
+    if (answers.length < 3) return alert("Silakan jawab semua pertanyaan");
+    setDiagnosticResult("Berdasarkan jawabanmu, kamu tampaknya lebih menyukai pembelajaran Visual dan Kinestetik. Gunakan fitur Lab Virtual untuk memaksimalkan pemahamanmu!");
+  };
+
+  // --- FUNGSI LAB MAGNET ---
+  const testMagnetItem = (id) => {
+    setMagnetLabItems(items => items.map(item => {
+      if (item.id === id) {
+        let text = '';
+        if (item.type === 'feromagnetik') text = 'Ditarik Kuat (Menempel)';
+        else if (item.type === 'paramagnetik') text = 'Ditarik Sangat Lemah / Tidak Terlihat';
+        else text = 'Tidak Ditarik (Diam)';
+        return { ...item, tested: true, result: text };
+      }
+      return item;
+    }));
+  };
+
+  // --- FUNGSI KUIS KELISTRIKAN ---
+  const handleQuizSubmit = (answers) => {
+    let score = 0;
+    if (answers.q1 === 'b') score += 50;
+    if (answers.q2 === 'c') score += 50;
+    setElecQuizScore(score);
+  };
+
+  // --- FUNGSI DOWNLOAD PDF ---
+  const handlePrintPDF = () => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Laporan Belajar - ${studentName}</title>
+          <style>
+            body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+            h1 { color: #166534; border-bottom: 2px solid #166534; padding-bottom: 10px; margin-bottom: 20px; }
+            h2 { color: #854d0e; margin-top: 30px; font-size: 18px; border-left: 5px solid #ca8a04; padding-left: 10px; background: #fefce8; padding-top: 5px; padding-bottom: 5px; }
+            .header-info { margin-bottom: 30px; background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #bbf7d0; }
+            .section-content { margin-left: 15px; margin-top: 10px; }
+            .box { background: #f9fafb; padding: 15px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 10px; white-space: pre-wrap; }
+            .score-box { font-weight: bold; font-size: 20px; color: #166534; }
+            .table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+            .table th, .table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            .table th { background-color: #f0fdf4; }
+          </style>
+        </head>
+        <body>
+          <h1>Laporan Hasil Belajar IPA</h1>
+          <div class="header-info">
+            <p><strong>Nama Siswa:</strong> ${studentName}</p>
+            <p><strong>Topik:</strong> Kemagnetan & Kelistrikan</p>
+            <p><strong>Tanggal:</strong> ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          </div>
+
+          <h2>1. Asesmen Diagnostik (Awal)</h2>
+          <div class="section-content">
+            <p><strong>Hasil Analisis Gaya Belajar & Pengetahuan Awal:</strong></p>
+            <div class="box">${diagnosticResult || 'Belum dikerjakan'}</div>
+          </div>
+
+          <h2>2. Modul Kemagnetan</h2>
+          <div class="section-content">
+            <p><strong>Hasil Uji Coba Laboratorium Virtual:</strong></p>
+            <table class="table">
+              <thead><tr><th>Benda</th><th>Jenis</th><th>Hasil Pengamatan</th></tr></thead>
+              <tbody>
+                ${magnetLabItems.map(item => `
+                  <tr>
+                    <td>${item.name}</td>
+                    <td>${item.type}</td>
+                    <td>${item.tested ? item.result : '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <br/>
+            <p><strong>Laporan Pengamatan Siswa:</strong></p>
+            <div class="box">${magnetReport.observation || '-'}</div>
+            <p><strong>Analisis & Penerapan:</strong></p>
+            <div class="box">${magnetReport.analysis || '-'}</div>
+          </div>
+
+          <h2>3. Modul Kelistrikan</h2>
+          <div class="section-content">
+            <p><strong>Solusi Hemat Energi (Studi Kasus):</strong></p>
+            <div class="box">${elecSolution || '-'}</div>
+            <p><strong>Nilai Kuis Pemahaman:</strong></p>
+            <div class="box score-box">${elecQuizScore !== null ? elecQuizScore : 'Belum mengerjakan kuis'} / 100</div>
+          </div>
+
+          <h2>4. Refleksi Pembelajaran</h2>
+          <div class="section-content">
+            <p><strong>Hal yang sudah dipahami:</strong></p>
+            <div class="box">${reflectionData.understood || '-'}</div>
+            <p><strong>Hal yang masih membingungkan:</strong></p>
+            <div class="box">${reflectionData.confused || '-'}</div>
+            <p><strong>Perasaan saat belajar:</strong></p>
+            <div class="box">${reflectionData.feeling || '-'}</div>
+          </div>
+          
+          <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #666;">
+            Generated by IPA Interaktif App
+          </div>
+        </body>
+      </html>
+    `;
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  // --- FUNGSI ICE BREAKING (MEMORY GAME) ---
+  const initializeGame = () => {
+    const symbols = ['⚡', '🧲', '💡', '🔋', '🔌', '⚛️'];
+    const deck = [...symbols, ...symbols]
+      .sort(() => Math.random() - 0.5)
+      .map((symbol, index) => ({ id: index, symbol, flipped: false }));
+    setCards(deck);
+    setFlipped([]);
+    setSolved([]);
+    setDisabled(false);
+  };
+
+  const handleCardClick = (id) => {
+    if (disabled || solved.includes(id) || flipped.includes(id)) return;
+
+    if (flipped.length === 0) {
+      setFlipped([id]);
+      return;
+    }
+
+    if (flipped.length === 1) {
+      setDisabled(true);
+      const firstId = flipped[0];
+      const secondId = id;
+      setFlipped([firstId, secondId]);
+
+      if (cards[firstId].symbol === cards[secondId].symbol) {
+        setSolved([...solved, firstId, secondId]);
+        setFlipped([]);
+        setDisabled(false);
+      } else {
+        setTimeout(() => {
+          setFlipped([]);
+          setDisabled(false);
+        }, 1000);
+      }
+    }
+  };
+
+  // --- RENDER HALAMAN DEPAN ---
+  if (!isStarted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-500 to-yellow-400 flex items-center justify-center p-4 font-sans">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center border-t-8 border-green-500">
+          <div className="flex justify-center mb-6">
+            <div className="bg-green-100 p-4 rounded-full">
+              <Activity size={48} className="text-green-600" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">IPA Interaktif</h1>
+          <p className="text-gray-600 mb-6">Kemagnetan & Kelistrikan dalam Kehidupan Sehari-hari</p>
+          
+          <div className="text-left mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap Siswa</label>
+            <input 
+              type="text" 
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+              placeholder="Masukkan namamu..."
+              value={studentName}
+              onChange={(e) => setStudentName(e.target.value)}
+            />
+          </div>
+          
+          <button 
+            onClick={() => studentName && setIsStarted(true)}
+            disabled={!studentName}
+            className={`w-full py-3 rounded-xl font-bold text-white transition-all ${
+              studentName ? 'bg-green-600 hover:bg-green-700 shadow-lg' : 'bg-gray-300 cursor-not-allowed'
+            }`}
+          >
+            Mulai Belajar 🚀
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDER DASHBOARD UTAMA ---
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans flex flex-col md:flex-row">
+      {/* Sidebar Navigasi */}
+      <div className="w-full md:w-64 bg-white shadow-lg md:h-screen flex flex-col z-10 border-r border-gray-200">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-bold text-green-700 flex items-center gap-2">
+            <Activity size={24} className="text-yellow-500" /> IPA Studio
+          </h2>
+          <p className="text-xs text-gray-500 mt-1">Halo, {studentName}</p>
+        </div>
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          <NavButton active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon={<BookOpen size={20} />} label="Beranda & Materi" />
+          <NavButton active={activeTab === 'diagnostic'} onClick={() => setActiveTab('diagnostic')} icon={<ClipboardList size={20} />} label="Asesmen Awal" />
+          <NavButton active={activeTab === 'magnet'} onClick={() => setActiveTab('magnet')} icon={<Magnet size={20} />} label="Modul Kemagnetan" />
+          <NavButton active={activeTab === 'electric'} onClick={() => setActiveTab('electric')} icon={<Zap size={20} />} label="Modul Kelistrikan" />
+          <NavButton active={activeTab === 'icebreaking'} onClick={() => { setActiveTab('icebreaking'); initializeGame(); }} icon={<Smile size={20} />} label="Ice Breaking" />
+          <NavButton active={activeTab === 'reflection'} onClick={() => setActiveTab('reflection')} icon={<FileText size={20} />} label="Refleksi & Laporan" />
+        </nav>
+      </div>
+
+      {/* Konten Utama */}
+      <div className="flex-1 overflow-y-auto h-screen p-4 md:p-8 bg-gray-100">
+        
+        {/* BERANDA REDESIGNED */}
+        {activeTab === 'home' && (
+          <div className="space-y-8 animate-fade-in">
+            
+            {/* 1. Hero Section yang lebih menarik dengan dekorasi */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-green-600 via-green-500 to-yellow-400 text-white rounded-3xl p-8 md:p-12 shadow-2xl">
+              <div className="relative z-10 max-w-2xl">
+                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium mb-4 border border-white/30">
+                  <span className="animate-pulse">✨</span> Selamat Datang, {studentName || 'Siswa Hebat'}!
+                </div>
+                <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
+                  Jelajahi Dunia <span className="text-yellow-100">Kemagnetan & Kelistrikan</span>
+                </h1>
+                <p className="text-lg text-green-50 mb-8 leading-relaxed max-w-lg">
+                  Siap untuk menjadi ilmuwan cilik? Lakukan eksperimen virtual, pecahkan masalah energi, dan jadilah juara sains hari ini!
+                </p>
+                <button 
+                  onClick={() => setActiveTab('diagnostic')}
+                  className="group bg-white text-green-700 px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-yellow-50 transition-all flex items-center gap-3 transform hover:-translate-y-1"
+                >
+                  <Play className="fill-current" size={20} />
+                  Mulai Petualangan
+                </button>
+              </div>
+              
+              {/* Elemen Dekorasi Background */}
+              <div className="absolute right-0 top-0 w-64 h-64 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+              <div className="absolute right-10 bottom-0 w-64 h-64 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+              
+              {/* Ikon Melayang (Hanya di layar besar) */}
+              <div className="absolute right-10 top-1/2 -translate-y-1/2 hidden md:block">
+                 <div className="relative w-64 h-64">
+                    <div className="absolute top-0 right-0 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 transform rotate-12 transition-transform hover:rotate-6">
+                      <Magnet size={64} className="text-white" />
+                    </div>
+                    <div className="absolute bottom-0 left-0 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 transform -rotate-12 transition-transform hover:-rotate-6">
+                      <Zap size={64} className="text-yellow-200" />
+                    </div>
+                 </div>
+              </div>
+            </div>
+
+            {/* 2. Menu Navigasi Cepat (Learning Path) */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <Activity className="text-green-500" /> Alur Belajarmu
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <MenuCard 
+                  onClick={() => setActiveTab('diagnostic')}
+                  icon={<ClipboardList size={32} className="text-blue-500" />}
+                  title="1. Cek Gaya Belajar"
+                  desc="Kenali caramu belajar agar lebih efektif."
+                  color="bg-blue-50 hover:bg-blue-100 border-blue-200"
+                />
+                <MenuCard 
+                  onClick={() => setActiveTab('magnet')}
+                  icon={<Magnet size={32} className="text-red-500" />}
+                  title="2. Lab Magnet"
+                  desc="Eksperimen virtual menarik benda."
+                  color="bg-red-50 hover:bg-red-100 border-red-200"
+                />
+                <MenuCard 
+                  onClick={() => setActiveTab('electric')}
+                  icon={<Zap size={32} className="text-yellow-500" />}
+                  title="3. Misi Listrik"
+                  desc="Pecahkan kasus boros energi."
+                  color="bg-yellow-50 hover:bg-yellow-100 border-yellow-200"
+                />
+                <MenuCard 
+                  onClick={() => setActiveTab('reflection')}
+                  icon={<Printer size={32} className="text-green-600" />}
+                  title="4. Cetak Rapor"
+                  desc="Download hasil belajarmu."
+                  color="bg-green-50 hover:bg-green-100 border-green-200"
+                />
+              </div>
+            </div>
+
+            {/* 3. Detail Tujuan Pembelajaran (Kartu Misi) */}
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Magnet size={120} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 relative z-10">
+                  <span className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-green-600">
+                    <Magnet size={18} />
+                  </span>
+                  Misi: Kemagnetan
+                </h3>
+                <ul className="space-y-3 relative z-10">
+                  {[
+                    "Menjelaskan konsep dasar magnet",
+                    "Uji coba benda feromagnetik",
+                    "Analisis data percobaan",
+                    "Membuat laporan pengamatan"
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-gray-600 text-sm">
+                      <CheckCircle size={16} className="text-green-500 mt-0.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
+                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Zap size={120} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 relative z-10">
+                  <span className="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center text-yellow-600">
+                    <Zap size={18} />
+                  </span>
+                  Misi: Kelistrikan
+                </h3>
+                <ul className="space-y-3 relative z-10">
+                  {[
+                    "Identifikasi masalah boros energi",
+                    "Analisis penggunaan listrik rumah",
+                    "Merumuskan solusi hemat energi",
+                    "Kuis pemahaman konsep"
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-gray-600 text-sm">
+                      <CheckCircle size={16} className="text-yellow-500 mt-0.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ASESMEN DIAGNOSTIK */}
+        {activeTab === 'diagnostic' && (
+          <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-8 animate-fade-in">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2 border-b border-green-100 pb-2">
+              <ClipboardList className="text-green-500" /> Asesmen Diagnostik
+            </h2>
+            
+            {!diagnosticResult ? (
+              <form onSubmit={handleDiagnosticSubmit} className="space-y-6">
+                <Question 
+                  id="q1" 
+                  question="1. Bagaimana cara belajar yang paling kamu sukai?" 
+                  options={["Membaca buku atau melihat gambar (Visual)", "Mendengarkan penjelasan guru (Auditori)", "Melakukan praktik langsung (Kinestetik)"]}
+                  onChange={(val) => setDiagnosticAnswers({...diagnosticAnswers, q1: val})}
+                />
+                <Question 
+                  id="q2" 
+                  question="2. Apa yang kamu ketahui tentang Magnet?" 
+                  options={["Benda yang bisa menarik besi", "Benda yang punya kutub utara dan selatan", "Belum tahu sama sekali"]}
+                  onChange={(val) => setDiagnosticAnswers({...diagnosticAnswers, q2: val})}
+                />
+                <Question 
+                  id="q3" 
+                  question="3. Di rumahmu, alat apa yang paling boros listrik?" 
+                  options={["AC / Kipas Angin", "Kulkas", "TV / Komputer"]}
+                  onChange={(val) => setDiagnosticAnswers({...diagnosticAnswers, q3: val})}
+                />
+                <button type="submit" className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 shadow-md">
+                  Kirim Jawaban
+                </button>
+              </form>
+            ) : (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+                <CheckCircle size={48} className="text-green-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-green-800 mb-2">Terima Kasih!</h3>
+                <p className="text-green-700">{diagnosticResult}</p>
+                <button onClick={() => setActiveTab('magnet')} className="mt-6 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+                  Lanjut ke Materi
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MODUL KEMAGNETAN */}
+        {activeTab === 'magnet' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <h2 className="text-2xl font-bold text-green-800 mb-4 border-b border-green-100 pb-2 flex items-center gap-2">
+                <BookOpen size={24} className="text-yellow-500" /> 1. Konsep Dasar
+              </h2>
+              <div className="prose max-w-none text-gray-700">
+                <p><strong>Magnet</strong> adalah benda yang memiliki kemampuan menarik benda-benda lain yang ada di sekitarnya. Magnet memiliki dua kutub, yaitu Kutub Utara (N) dan Kutub Selatan (S).</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <InfoBox title="Feromagnetik" content="Benda yang ditarik KUAT oleh magnet (Besi, Baja, Nikel)." color="bg-green-50 border-green-200 text-green-800" />
+                  <InfoBox title="Paramagnetik" content="Benda yang ditarik LEMAH oleh magnet (Aluminium, Platina)." color="bg-yellow-50 border-yellow-200 text-yellow-800" />
+                  <InfoBox title="Diamagnetik" content="Benda yang DITOLAK/Tidak ditarik magnet (Emas, Seng, Kayu)." color="bg-gray-50 border-gray-200 text-gray-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-green-100">
+              <h2 className="text-2xl font-bold text-green-800 mb-4 flex items-center gap-2">
+                <Activity className="text-green-600" /> 2. Laboratorium Virtual: Uji Sifat Magnet
+              </h2>
+              <p className="mb-4 text-gray-600">Klik tombol "Uji Benda" pada daftar di bawah ini untuk mendekatkannya ke magnet batang dan lihat apa yang terjadi.</p>
+              
+              <div className="flex flex-col md:flex-row gap-8 items-center justify-center p-8 bg-gray-50 rounded-xl mb-6 border border-gray-200">
+                {/* Visual Magnet: Merah (Utara) dan Abu-abu (Selatan) agar sesuai tema */}
+                <div className="relative w-32 h-64 bg-gradient-to-b from-red-500 to-gray-600 rounded-lg shadow-2xl flex flex-col items-center justify-between py-4 text-white font-bold text-2xl border-2 border-gray-400">
+                  <span>N</span>
+                  <span>S</span>
+                </div>
+                <div className="flex-1 w-full grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {magnetLabItems.map((item) => (
+                    <div key={item.id} className={`p-4 rounded-lg border transition-all ${item.tested ? 'bg-white shadow-sm border-green-200' : 'bg-gray-100 border-gray-200'} `}>
+                      <div className="font-bold text-gray-800">{item.name}</div>
+                      <div className="text-xs text-gray-500 mb-2">{item.tested ? 'Hasil Pengamatan:' : 'Belum diuji'}</div>
+                      {item.tested ? (
+                        <span className={`text-sm font-semibold ${item.type === 'feromagnetik' ? 'text-green-600' : 'text-gray-500'}`}>
+                          {item.result}
+                        </span>
+                      ) : (
+                        <button 
+                          onClick={() => testMagnetItem(item.id)}
+                          className="w-full py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 font-medium"
+                        >
+                          Uji Benda
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <h2 className="text-2xl font-bold text-green-800 mb-4 flex items-center gap-2">
+                <Save className="text-yellow-500" /> 3. Laporan Hasil Percobaan
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Hasil Pengamatan (Berdasarkan Lab Virtual di atas)</label>
+                  <textarea 
+                    className="w-full p-3 border border-gray-300 rounded-lg h-24 focus:ring-2 focus:ring-green-500 bg-gray-50"
+                    placeholder="Tuliskan benda apa saja yang ditarik kuat, lemah, atau tidak ditarik..."
+                    value={magnetReport.observation}
+                    onChange={(e) => setMagnetReport({...magnetReport, observation: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Analisis & Penerapan Sehari-hari</label>
+                  <textarea 
+                    className="w-full p-3 border border-gray-300 rounded-lg h-24 focus:ring-2 focus:ring-green-500 bg-gray-50"
+                    placeholder="Jelaskan mengapa benda tersebut ditarik/tidak? Berikan contoh alat di rumah yang menggunakan magnet (misal: Kompas, Kulkas)..."
+                    value={magnetReport.analysis}
+                    onChange={(e) => setMagnetReport({...magnetReport, analysis: e.target.value})}
+                  />
+                </div>
+                <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 font-medium">
+                  <Save size={18} /> Simpan Laporan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODUL KELISTRIKAN */}
+        {activeTab === 'electric' && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Studi Kasus */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-yellow-100 p-2 rounded-lg">
+                  <Lightbulb className="text-yellow-600" size={32} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Studi Kasus: Energi & Lingkungan</h2>
+              </div>
+              
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 text-gray-700">
+                <h3 className="font-bold text-yellow-800 mb-1">Masalah:</h3>
+                <p>
+                  Keluarga Budi mengeluh tagihan listrik bulan ini melonjak drastis. Mereka sering menyalakan AC suhu 16°C seharian, lampu taman menyala di siang hari, dan TV tetap standby saat tidur. Selain boros biaya, ini juga menyumbang emisi karbon.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <label className="block text-sm font-semibold text-gray-700">Rumuskan Solusimu:</label>
+                <p className="text-xs text-gray-500">Identifikasi perilaku boros dan berikan 3 solusi konkret untuk keluarga Budi.</p>
+                <textarea 
+                  className="w-full p-4 border border-gray-300 rounded-lg h-32 focus:ring-2 focus:ring-yellow-500 bg-gray-50"
+                  placeholder="Contoh: 1. Matikan lampu saat siang..."
+                  value={elecSolution}
+                  onChange={(e) => setElecSolution(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Kuis */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <HelpCircle className="text-green-500" /> Kuis Pemahaman
+              </h2>
+              
+              {elecQuizScore === null ? (
+                <QuizForm onSubmit={handleQuizSubmit} />
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">🏆</div>
+                  <h3 className="text-2xl font-bold text-gray-800">Nilai Kamu: {elecQuizScore}/100</h3>
+                  <p className="text-gray-600 mt-2">
+                    {elecQuizScore === 100 ? "Luar biasa! Kamu memahami konsep dengan sempurna." : "Coba pelajari lagi materi penghematan energi ya."}
+                  </p>
+                  <button onClick={() => setElecQuizScore(null)} className="mt-4 text-green-600 hover:underline font-bold">Ulangi Kuis</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ICE BREAKING */}
+        {activeTab === 'icebreaking' && (
+          <div className="max-w-4xl mx-auto animate-fade-in">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 flex items-center justify-center gap-3">
+                <Smile className="text-yellow-500" size={40} /> Ice Breaking: Memory Match
+              </h2>
+              <p className="text-gray-600">Temukan pasangan simbol fisika yang sama untuk melatih fokusmu!</p>
+              <button 
+                onClick={initializeGame}
+                className="mt-4 px-6 py-2 bg-yellow-400 text-yellow-900 rounded-full hover:bg-yellow-500 flex items-center gap-2 mx-auto font-bold shadow"
+              >
+                <RefreshCw size={18} /> Restart Game
+              </button>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4 max-w-lg mx-auto">
+              {cards.map((card) => (
+                <div 
+                  key={card.id}
+                  onClick={() => handleCardClick(card.id)}
+                  className={`aspect-square rounded-xl cursor-pointer transition-all duration-300 transform flex items-center justify-center text-4xl shadow-sm border-2
+                    ${solved.includes(card.id) || flipped.includes(card.id) 
+                      ? 'bg-white border-yellow-400 rotate-0' 
+                      : 'bg-green-600 border-green-600 text-transparent rotate-y-180 hover:bg-green-500'}`}
+                >
+                  {(solved.includes(card.id) || flipped.includes(card.id)) ? card.symbol : '?'}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* REFLEKSI & RAPOR (TAB BARU) */}
+        {activeTab === 'reflection' && (
+          <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <h2 className="text-2xl font-bold text-green-800 mb-4 border-b border-green-100 pb-2 flex items-center gap-2">
+                <FileText size={24} className="text-yellow-500" /> Refleksi Pembelajaran
+              </h2>
+              <p className="text-gray-600 mb-6">Jawablah pertanyaan berikut untuk mengevaluasi proses belajarmu hari ini.</p>
+              
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">1. Apa hal baru yang sudah kamu pahami hari ini?</label>
+                  <textarea 
+                    className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 bg-green-50 h-24"
+                    placeholder="Contoh: Saya baru tahu kalau emas tidak ditarik magnet..."
+                    value={reflectionData.understood}
+                    onChange={(e) => setReflectionData({...reflectionData, understood: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">2. Bagian mana yang masih membingungkan atau ingin dipelajari lagi?</label>
+                  <textarea 
+                    className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 bg-yellow-50 h-24"
+                    placeholder="Contoh: Saya masih bingung membedakan paramagnetik dan diamagnetik..."
+                    value={reflectionData.confused}
+                    onChange={(e) => setReflectionData({...reflectionData, confused: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">3. Bagaimana perasaanmu setelah belajar menggunakan aplikasi ini?</label>
+                  <textarea 
+                    className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 bg-gray-50 h-24"
+                    placeholder="Senang, tertantang, atau bosan? Ceritakan ya..."
+                    value={reflectionData.feeling}
+                    onChange={(e) => setReflectionData({...reflectionData, feeling: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-green-600 to-green-800 p-8 rounded-2xl shadow-lg text-white text-center">
+              <h2 className="text-2xl font-bold mb-4">🎉 Pembelajaran Selesai!</h2>
+              <p className="mb-6 opacity-90">
+                Kamu sudah menyelesaikan asesmen, modul magnet, modul listrik, dan refleksi. 
+                Sekarang kamu bisa mengunduh semua hasil kerjamu dalam bentuk PDF untuk dikumpulkan ke Bapak/Ibu Guru.
+              </p>
+              <button 
+                onClick={handlePrintPDF}
+                className="px-8 py-4 bg-yellow-400 text-yellow-900 rounded-full font-bold hover:bg-yellow-300 transition-all flex items-center justify-center gap-3 mx-auto shadow-lg transform hover:scale-105"
+              >
+                <Printer size={24} /> Download Laporan Hasil Belajar (PDF)
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// --- SUB COMPONENTS ---
+
+const NavButton = ({ active, onClick, icon, label }) => (
+  <button 
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+      active ? 'bg-green-50 text-green-700 border border-green-100 shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-green-600'
+    }`}
+  >
+    {icon}
+    <span className="text-sm">{label}</span>
+  </button>
+);
+
+const MenuCard = ({ onClick, icon, title, desc, color }) => (
+  <button 
+    onClick={onClick} 
+    className={`${color} p-6 rounded-2xl border text-left transition-all transform hover:-translate-y-1 hover:shadow-md flex flex-col items-start gap-4 h-full`}
+  >
+    <div className="bg-white p-3 rounded-xl shadow-sm">
+      {icon}
+    </div>
+    <div>
+      <h4 className="font-bold text-gray-800 mb-1">{title}</h4>
+      <p className="text-xs text-gray-600 leading-relaxed">{desc}</p>
+    </div>
+  </button>
+);
+
+const Card = ({ title, children, icon }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+    <h3 className="font-bold text-gray-800 mb-4 text-lg border-b border-gray-100 pb-2 flex items-center gap-2">
+      {icon} {title}
+    </h3>
+    {children}
+  </div>
+);
+
+const InfoBox = ({ title, content, color }) => (
+  <div className={`${color} p-4 rounded-lg border`}>
+    <h4 className="font-bold mb-1">{title}</h4>
+    <p className="text-sm">{content}</p>
+  </div>
+);
+
+const Question = ({ id, question, options, onChange }) => (
+  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+    <p className="font-semibold text-gray-800 mb-3">{question}</p>
+    <div className="space-y-2">
+      {options.map((opt, idx) => (
+        <label key={idx} className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-white hover:shadow-sm transition-all">
+          <input type="radio" name={id} className="w-4 h-4 text-green-600 focus:ring-green-500" onChange={() => onChange(opt)} />
+          <span className="text-gray-700 text-sm">{opt}</span>
+        </label>
+      ))}
+    </div>
+  </div>
+);
+
+const QuizForm = ({ onSubmit }) => {
+  const [answers, setAnswers] = useState({});
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (Object.keys(answers).length < 2) return alert("Jawab semua soal dulu ya!");
+    onSubmit(answers);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <p className="font-semibold mb-2 text-gray-800">1. Energi alternatif yang memanfaatkan panas bumi disebut...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {['a. Hidroelektrik', 'b. Geotermal', 'c. Biomassa', 'd. Nuklir'].map(opt => (
+              <label key={opt} className="border border-gray-200 p-3 rounded hover:bg-green-50 hover:border-green-200 cursor-pointer flex gap-2 transition-colors">
+                <input type="radio" name="q1" value={opt.charAt(0)} onChange={(e) => setAnswers({...answers, q1: e.target.value})} className="text-green-600 focus:ring-green-500" />
+                <span className="text-gray-700">{opt}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="font-semibold mb-2 text-gray-800">2. Tindakan manakah yang paling efektif menghemat listrik AC?</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {['a. Menyalakan AC di suhu 16°C', 'b. Membuka jendela saat AC menyala', 'c. Mengatur suhu di 24-25°C & menutup ruangan', 'd. Mematikan AC setiap 10 menit'].map(opt => (
+              <label key={opt} className="border border-gray-200 p-3 rounded hover:bg-green-50 hover:border-green-200 cursor-pointer flex gap-2 transition-colors">
+                <input type="radio" name="q2" value={opt.charAt(0)} onChange={(e) => setAnswers({...answers, q2: e.target.value})} className="text-green-600 focus:ring-green-500" />
+                <span className="text-gray-700">{opt}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+      <button type="submit" className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-md">
+        Cek Nilai
+      </button>
+    </form>
+  );
+};
+
+export default App;
